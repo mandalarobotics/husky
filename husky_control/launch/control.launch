@@ -1,18 +1,62 @@
 <?xml version="1.0"?>
 <launch>
-
+  <arg name="tf_prefix" default="husky" />
   <rosparam command="load" file="$(find husky_control)/config/control.yaml" />
 
-  <node name="base_controller_spawner" pkg="controller_manager" type="spawner" args="husky_joint_publisher husky_velocity_controller --shutdown-timeout 3"/>
+  <node name="base_controller_spawner" pkg="controller_manager" type="spawner" args="husky_joint_publisher husky_velocity_controller --shutdown-timeout 3">
+     <rosparam name="base_frame_id" value="$(arg tf_prefix)/base_link"/>
+  </node>
 
   <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization">
-    <rosparam command="load" file="$(find husky_control)/config/localization.yaml" />
+<!--     <rosparam command="load" file="$(find husky_control)/config/localization.yaml" /> -->
+
+  <param name="odom_frame" value="odom"/>
+  <param name="base_link_frame" value="/base_link"/>
+  <param name="world_frame" value="odom"/>
+  <param name="map_frame" value="map"/>
+  
+  
+<rosparam>
+sensor_timeout: 25
+two_d_mode: false
+
+frequency: 10
+
+# [x, 		y,   	z,
+#  roll, 	pitch, 	yaw,
+#  vx,   	vy,   	vz,
+#  vroll,   vpitch, vyaw
+#  ax,		ay,		az]
+
+odom0: husky_velocity_controller/odom
+odom0_config: [false, false,  false,
+               false, false,  false,
+               true,  false,  false,
+               false, false,  false,
+               false, false,  false]
+odom0_differential: true
+odom0_queue_size: 10
+
+imu0: imu/data
+imu0_config: [false, false, false,
+              false, false, true,
+              false, false, false,
+              false, false, false,
+              false, false, false]
+imu0_differential: false
+imu0_queue_size: 10
+imu0_remove_gravitational_acceleration: true
+debug: true
+debug_out_file: /tmp/debug_ekf_localization.txt
+print_diagnostics: true
+</rosparam>
   </node>
 
   <node pkg="interactive_marker_twist_server" type="marker_server" name="twist_marker_server" output="screen"/>
 
   <node pkg="twist_mux" type="twist_mux" name="twist_mux">
     <rosparam command="load" file="$(find husky_control)/config/twist_mux.yaml" />
+
     <remap from="cmd_vel_out" to="husky_velocity_controller/cmd_vel"/>
   </node>
 
